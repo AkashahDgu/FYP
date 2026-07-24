@@ -1,0 +1,340 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>UTM Campus Explorer — 3D Virtual Tour</title>
+    <meta name="description" content="Explore UTM campus in 3D with WASD movement, NPC interaction, and 360° panoramic views." />
+
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <!-- App Styles -->
+    <link rel="stylesheet" href="styles.css" />
+</head>
+
+<body>
+
+    <!-- ═══ INTRO SCREEN (LOADING SCREEN) ═══ -->
+    <div id="intro-screen">
+        <div class="intro-sidebar">
+            <div class="intro-header">
+                <h1>UTM C02-C06 Building Explorer</h1>
+                <p class="subtitle">3D Virtual Campus Tour</p>
+            </div>
+
+            <div class="controls-guide-container">
+                <h3 class="guide-title">Campus Controls</h3>
+                <div class="controls-sidebar-list">
+                    <div class="control-row">
+                        <div class="keycap-group">
+                            <div class="keycap-cluster">
+                                <kbd class="keycap">W</kbd>
+                                <kbd class="keycap">A</kbd>
+                                <kbd class="keycap">S</kbd>
+                                <kbd class="keycap">D</kbd>
+                            </div>
+                        </div>
+                        <span class="control-description">Move Around</span>
+                    </div>
+                    <div class="control-row">
+                        <div class="keycap-group">
+                            <kbd class="keycap mouse-kbd">Mouse</kbd>
+                        </div>
+                        <span class="control-description">Look Around</span>
+                    </div>
+                    <div class="control-row">
+                        <div class="keycap-group">
+                            <kbd class="keycap space-kbd">Space</kbd>
+                        </div>
+                        <span class="control-description">Fly Up / Jump</span>
+                    </div>
+                    <div class="control-row">
+                        <div class="keycap-group">
+                            <kbd class="keycap">C</kbd>
+                        </div>
+                        <span class="control-description">Fly Down / Descend</span>
+                    </div>
+                    <div class="control-row">
+                        <div class="keycap-group">
+                            <kbd class="keycap">F</kbd>
+                        </div>
+                        <span class="control-description">Talk / Inspect Room</span>
+                    </div>
+                    <div class="control-row">
+                        <div class="keycap-group">
+                            <kbd class="keycap">N</kbd>
+                        </div>
+                        <span class="control-description">Open Navigation Menu</span>
+                    </div>
+                    <div class="control-row">
+                        <div class="keycap-group">
+                            <kbd class="keycap esc-kbd">ESC</kbd>
+                        </div>
+                        <span class="control-description">Release Cursor</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="action-container">
+                <div class="loading-container" id="loading-container">
+                    <div class="progress-bar-bg">
+                        <div class="progress-bar-fill" id="progress-bar-fill"></div>
+                    </div>
+                    <div class="loading-status">
+                        <span class="loading-text" id="loading-text">Initializing explorer...</span>
+                        <span class="loading-percentage" id="loading-percentage">0%</span>
+                    </div>
+                </div>
+                <button class="start-btn" id="start-btn" style="display: none;">Explore Campus</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══ UI OVERLAYS ═══ -->
+    <div id="minimap"></div>
+    <button id="settings-btn" title="Open Settings">⚙️</button>
+
+    <!-- ═══ TELEMETRY HUD ═══ -->
+    <div id="telemetry-hud">
+        <div class="hud-title">TELEMETRY</div>
+        <div class="hud-row"><span class="hud-label">Lat</span><span class="hud-value" id="hud-lat">1.560044</span></div>
+        <div class="hud-row"><span class="hud-label">Lng</span><span class="hud-value" id="hud-lng">103.635711</span></div>
+        <div class="hud-row"><span class="hud-label">Height</span><span class="hud-value" id="hud-z">0.00</span></div>
+        <div class="hud-divider"></div>
+        <div class="hud-row"><span class="hud-label">Zone</span><span class="hud-value hud-zone" id="hud-zone">—</span></div>
+    </div>
+
+    <!-- ═══ ZONE NOTIFICATION ═══ -->
+    <div id="zone-notification"></div>
+
+    <!-- ═══ SETTINGS PANEL ═══ -->
+    <div id="settings-panel">
+        <div class="settings-header">
+            <h3>⚙ Settings</h3>
+            <button class="settings-close-x" id="close-settings" title="Close">✕</button>
+        </div>
+
+        <div class="settings-tabs">
+            <button class="settings-tab active" data-tab="graphics">Graphics</button>
+            <button class="settings-tab" data-tab="controls">Controls</button>
+            <button class="settings-tab" data-tab="gameplay">Gameplay</button>
+        </div>
+
+        <!-- Graphics Tab -->
+        <div class="settings-tab-content active" id="tab-graphics">
+            <div class="s-row">
+                <label>Resolution Scale <span class="s-val" id="res-val">100%</span></label>
+                <input id="res-slider" type="range" min="50" max="100" value="100" step="5" />
+            </div>
+            <div class="s-divider"></div>
+            <div class="s-section-label">Post-Processing</div>
+            <div class="s-toggle-row">
+                <span>SSAO</span>
+                <label class="toggle-switch"><input type="checkbox" id="toggle-ssao" /><span class="toggle-track"></span></label>
+            </div>
+            <div class="s-toggle-row">
+                <span>Bloom</span>
+                <label class="toggle-switch"><input type="checkbox" id="toggle-bloom" /><span class="toggle-track"></span></label>
+            </div>
+            <div class="s-toggle-row">
+                <span>FXAA</span>
+                <label class="toggle-switch"><input type="checkbox" id="toggle-fxaa" /><span class="toggle-track"></span></label>
+            </div>
+            <div class="s-toggle-row">
+                <span>SMAA</span>
+                <label class="toggle-switch"><input type="checkbox" id="toggle-smaa" /><span class="toggle-track"></span></label>
+            </div>
+            <div class="s-divider"></div>
+            <div class="s-row">
+                <label>Time of Day <span class="s-val" id="tod-val">Golden Hr</span></label>
+                <input id="tod-slider" type="range" min="0" max="100" value="15" />
+            </div>
+        </div>
+
+        <!-- Controls Tab -->
+        <div class="settings-tab-content" id="tab-controls">
+            <div class="s-section-label" style="margin-top: 5px;">Movement & Camera</div>
+            <div class="control-help-row">
+                <span class="control-help-key">WASD</span>
+                <span class="control-help-desc">Move Around</span>
+            </div>
+            <div class="control-help-row">
+                <span class="control-help-key">Mouse</span>
+                <span class="control-help-desc">Look Around</span>
+            </div>
+            <div class="control-help-row">
+                <span class="control-help-key">Space</span>
+                <span class="control-help-desc">Jump / Fly Up</span>
+            </div>
+            <div class="control-help-row">
+                <span class="control-help-key">C</span>
+                <span class="control-help-desc">Descend / Fly Down</span>
+            </div>
+            <div class="s-divider" style="margin: 10px 0;"></div>
+            <div class="s-section-label">Interaction</div>
+            <div class="control-help-row">
+                <span class="control-help-key">F</span>
+                <span class="control-help-desc">Talk / Inspect Room</span>
+            </div>
+            <div class="control-help-row">
+                <span class="control-help-key">N</span>
+                <span class="control-help-desc">Open Navigation Menu</span>
+            </div>
+            <div class="control-help-row">
+                <span class="control-help-key">ESC</span>
+                <span class="control-help-desc">Release Mouse Lock</span>
+            </div>
+        </div>
+
+        <!-- Gameplay Tab -->
+        <div class="settings-tab-content" id="tab-gameplay">
+            <div class="s-row">
+                <label>Walk Speed <span class="s-val" id="speed-val">5</span></label>
+                <input id="speed-slider" type="range" min="1" max="50" value="5" />
+            </div>
+            <div class="s-row">
+                <label>Mouse Sensitivity <span class="s-val" id="sens-val">2.0</span></label>
+                <input id="sens-slider" type="range" min="5" max="50" value="20" step="1" />
+            </div>
+            <div class="s-divider"></div>
+            <div class="s-toggle-row">
+                <span>Show Mini-Map</span>
+                <label class="toggle-switch"><input type="checkbox" id="toggle-minimap" checked /><span class="toggle-track"></span></label>
+            </div>
+            <div class="s-toggle-row">
+                <span>Fly Mode</span>
+                <label class="toggle-switch"><input type="checkbox" id="toggle-fly" /><span class="toggle-track"></span></label>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══ GLOBAL NAVIGATION PANEL ═══ -->
+    <div id="global-navigation-panel">
+        <div class="navigation-header">
+            <h3>📍 Campus Directory</h3>
+            <button class="navigation-close-x" id="close-navigation" title="Close">✕</button>
+        </div>
+        <div class="navigation-content">
+            <!-- Category: Lecture Halls -->
+            <div class="nav-category">
+                <div class="nav-category-title">Lecture Halls (Dewan Kuliah)</div>
+                <div class="nav-grid">
+                    <button class="nav-item-btn" data-destination="C06 Dewan Kuliah 1 (DK 1) Level 3">
+                        <span class="nav-item-name">DK 1 (C06 - Level 3)</span>
+                        <span class="nav-item-sub">Dewan Kuliah 1</span>
+                    </button>
+                    <button class="nav-item-btn" data-destination="C06 Dewan Kuliah 2 (DK 2) Level 2">
+                        <span class="nav-item-name">DK 2 (C06 - Level 2)</span>
+                        <span class="nav-item-sub">Dewan Kuliah 2</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Category: Classrooms -->
+            <div class="nav-category">
+                <div class="nav-category-title">Classrooms (Bilik Kuliah)</div>
+                <div class="nav-grid">
+                    <button class="nav-item-btn" data-destination="C02 Bilik Kuliah 1 (BK 1) Level 3">
+                        <span class="nav-item-name">BK 1 (C02 - Lvl 3)</span>
+                        <span class="nav-item-sub">Bilik Kuliah 1</span>
+                    </button>
+                    <button class="nav-item-btn" data-destination="C02 Bilik Kuliah 2 (BK 2) Level 3">
+                        <span class="nav-item-name">BK 2 (C02 - Lvl 3)</span>
+                        <span class="nav-item-sub">Bilik Kuliah 2</span>
+                    </button>
+                    <button class="nav-item-btn" data-destination="C02 Bilik Kuliah 3 (BK 3) Level 3">
+                        <span class="nav-item-name">BK 3 (C02 - Lvl 3)</span>
+                        <span class="nav-item-sub">Bilik Kuliah 3</span>
+                    </button>
+                    <button class="nav-item-btn" data-destination="C03 Bilik Kuliah 4 (BK 4) Level 4">
+                        <span class="nav-item-name">BK 4 (C03 - Lvl 4)</span>
+                        <span class="nav-item-sub">Bilik Kuliah 4</span>
+                    </button>
+                    <button class="nav-item-btn" data-destination="C04 Bilik Kuliah 5 (BK 5) Level 4">
+                        <span class="nav-item-name">BK 5 (C04 - Lvl 4)</span>
+                        <span class="nav-item-sub">Bilik Kuliah 5</span>
+                    </button>
+                    <button class="nav-item-btn" data-destination="C04 Bilik Kuliah 6 (BK 6) Level 2">
+                        <span class="nav-item-name">BK 6 (C04 - Lvl 2)</span>
+                        <span class="nav-item-sub">Bilik Kuliah 6</span>
+                    </button>
+                    <button class="nav-item-btn" data-destination="C05 Bilik Kuliah 7 (BK 7) Level 4">
+                        <span class="nav-item-name">BK 7 (C05 - Lvl 4)</span>
+                        <span class="nav-item-sub">Bilik Kuliah 7</span>
+                    </button>
+                    <button class="nav-item-btn" data-destination="C05 Bilik Kuliah 8 (BK 8) Level 4">
+                        <span class="nav-item-name">BK 8 (C05 - Lvl 4)</span>
+                        <span class="nav-item-sub">Bilik Kuliah 8</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Category: Staircases -->
+            <div class="nav-category">
+                <div class="nav-category-title">Interactive Navigator Markers (Staircase)</div>
+                <div class="nav-grid">
+                    <button class="nav-item-btn" data-destination="INM-STAIR1 (Level 1)">
+                        <span class="nav-item-name">Staircase Level 1</span>
+                        <span class="nav-item-sub">INM-STAIR1</span>
+                    </button>
+                    <button class="nav-item-btn" data-destination="INM-STAIR2 (Level 2)">
+                        <span class="nav-item-name">Staircase Level 2</span>
+                        <span class="nav-item-sub">INM-STAIR2</span>
+                    </button>
+                    <button class="nav-item-btn" data-destination="INM-STAIR3 (Level 3)">
+                        <span class="nav-item-name">Staircase Level 3</span>
+                        <span class="nav-item-sub">INM-STAIR3</span>
+                    </button>
+                    <button class="nav-item-btn" data-destination="INM-STAIR4 (Level 4)">
+                        <span class="nav-item-name">Staircase Level 4</span>
+                        <span class="nav-item-sub">INM-STAIR4</span>
+                    </button>
+                    <button class="nav-item-btn" data-destination="INM-STAIR5 (Level 5)">
+                        <span class="nav-item-name">Staircase Level 5</span>
+                        <span class="nav-item-sub">INM-STAIR5</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══ NPC DIALOGUE ═══ -->
+    <div id="interaction-prompt">Press <span style="color: #00e5ff; background: rgba(0,229,255,0.1); padding: 2px 6px; border-radius: 4px; border: 1px solid rgba(0,229,255,0.3);">F</span> to Talk</div>
+
+    <div id="dialogue-container">
+        <div id="dialogue-text">Welcome to the UTM Campus! I am your guide. Would you like to see something special?</div>
+        <div id="dialogue-options"></div>
+    </div>
+
+    <!-- ═══ 360 VIEWER MODAL ═══ -->
+    <div id="modal-overlay"></div>
+    <div id="three60-modal">
+        <div id="three60-close" title="Close Viewer">✕</div>
+        <div id="three60-canvas-container"></div>
+        <div id="three60-controls">
+            <span>−</span>
+            <input type="range" id="three60-zoom" min="30" max="100" value="75" />
+            <span>+</span>
+            <span id="zoom-val">75</span>
+        </div>
+    </div>
+
+    <!-- ═══ SCRIPTS ═══ -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.152.2/examples/jsm/",
+        "three-mesh-bvh": "https://cdn.jsdelivr.net/npm/three-mesh-bvh@0.6.0/src/index.js"
+      }
+    }
+    </script>
+
+    <script type="module" src="app.js"></script>
+
+</body>
+
+</html>

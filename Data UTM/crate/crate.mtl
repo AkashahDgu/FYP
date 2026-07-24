@@ -1,0 +1,9 @@
+# Sci-Fi Crate Material Library
+newmtl CrateMaterial
+Ka 1.0 1.0 1.0
+Kd 1.0 1.0 1.0
+Ks 0.8 0.8 0.8
+Ns 32
+illum 2
+map_Kd crate_diffuse.png
+map_Bump crate_normal.png
